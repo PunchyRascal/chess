@@ -1,3 +1,7 @@
+Number.prototype.isOdd = function () {
+    return this % 2 !== 0;
+};
+
 let board = document.getElementById('board');
 let table = board.getElementsByTagName('table')[0];
 let letterMap = {a: 0, b: 1, c: 2, d: 3, e: 4, f: 5, g: 6, h: 7};
@@ -9,6 +13,7 @@ let pieceMap = {
     white: {0: pawnRow, 1: queenRow}
 };
 let movingPiece = null;
+let lastColor = null;
 
 
 function clickHandler(e) {
@@ -17,10 +22,17 @@ function clickHandler(e) {
     }
 
     if (movingPiece) {
-        e.currentTarget.innerHTML = movingPiece;
+        e.currentTarget.appendChild(movingPiece);
+        lastColor = movingPiece.dataset.color;
         movingPiece = null;
     } else {
-        movingPiece = e.currentTarget.innerHTML;
+        movingPiece = e.currentTarget.querySelector('.piece');
+
+        if (!lastColor && movingPiece.dataset.color !== 'white' || movingPiece.dataset.color === lastColor) {
+            movingPiece = null;
+            return;
+        }
+
         e.currentTarget.innerHTML = "";
     }
 }
@@ -36,19 +48,44 @@ function createPieces(color) {
     let start = color === 'black' ? ['a', 8] : ['a', 2];
 
     [start[1], start[1] - 1].forEach(function(row, rowIndex) {
-        [0, 1, 2, 3, 4, 5, 6, 7].forEach(function(cellIndex) {
-            piece = pieceMap[color][rowIndex][cellIndex];
-            callAtCell(numberMap[letterMap[start[0]] + cellIndex], row, cell => {
-                cell.innerHTML = "<span style='color: "+ color +"'>" + piece + "</span>";
+        [0, 1, 2, 3, 4, 5, 6, 7].forEach(function(colIndex) {
+            piece = pieceMap[color][rowIndex][colIndex];
+            callAtCell(numberMap[letterMap[start[0]] + colIndex], row, cell => {
+                cell.innerHTML = "<span class='piece' data-color='"+ color +"' style='color: "+ color +"'>" + piece + "</span>";
             });
         });
     });
 }
 
+function getCellColor(colIndex, rowIndex) {
+    let lightColor = "#998888";
+    let darkColor = "#665555";
+
+    // console.log("color at: ", colIndex, rowIndex);
+
+    if (rowIndex.isOdd()) {
+        if (colIndex.isOdd()) {
+            return darkColor;
+        } else {
+            return lightColor;
+        }
+    } else {
+        if (colIndex.isOdd()) {
+            return lightColor;
+        } else {
+            return darkColor;
+        }
+    }
+}
+
 function initCells() {
     ["a", "b", "c", "d", "e", "f", "g", "h"].forEach(function(col, colIndex) {
-        [0, 1, 2, 3, 4, 5, 6, 7].forEach(function(row, rowIndex) {
-            callAtCell(col, row, cell => cell.addEventListener('click', clickHandler));
+        [1, 2, 3, 4, 5, 6, 7, 8].forEach(function(row, rowIndex) {
+            callAtCell(col, row, (cell, currentCol, currentRow) => {
+                cell.addEventListener('click', clickHandler);
+                cell.style.backgroundColor = getCellColor(colIndex + 1, row);
+                cell.classList.add('square');
+            });
         });
     });
 }
