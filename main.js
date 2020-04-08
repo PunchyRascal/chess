@@ -16,11 +16,11 @@ function Chess() {
         movingPiece,
         lastColor;
 
-    generateBoard();
-    ['black', 'white'].forEach(createPieces);
-    initCells();
+    initializeBoard();
+    ['black', 'white'].forEach(initializePieces);
+    initializeSquares();
 
-    function clickHandler(e) {
+    function squareClickHandler(e) {
         if (!movingPiece && e.currentTarget.innerHTML === "") {
             return;
         }
@@ -41,27 +41,27 @@ function Chess() {
         }
     }
 
-    function callAtCell(letter, number, callback) {
+    function callAtSquare(letter, number, callback) {
         // console.log('get cell at: ', letter, ',', number);
         let row = table.getElementsByTagName('tr')[8 - number + 1];
         let cell = row.getElementsByTagName('td')[letterMap[letter] + 1];
         callback(cell);
     }
 
-    function createPieces(color) {
+    function initializePieces(color) {
         let start = color === 'black' ? ['a', 8] : ['a', 2];
 
         [start[1], start[1] - 1].forEach(function(row, rowIndex) {
             [0, 1, 2, 3, 4, 5, 6, 7].forEach(function(colIndex) {
                 piece = pieceMap[color][rowIndex][colIndex];
-                callAtCell(numberMap[letterMap[start[0]] + colIndex], row, cell => {
+                callAtSquare(numberMap[letterMap[start[0]] + colIndex], row, cell => {
                     cell.innerHTML = "<span class='piece' data-color='"+ color +"' style='color: "+ color +"'>" + piece + "</span>";
                 });
             });
         });
     }
 
-    function getCellColor(colIndex, rowIndex) {
+    function squareColorAt(colIndex, rowIndex) {
         let lightColor = "#998888";
         let darkColor = "#665555";
 
@@ -82,19 +82,19 @@ function Chess() {
         }
     }
 
-    function initCells() {
+    function initializeSquares() {
         ["a", "b", "c", "d", "e", "f", "g", "h"].forEach(function(col, colIndex) {
             [1, 2, 3, 4, 5, 6, 7, 8].forEach(function(row, rowIndex) {
-                callAtCell(col, row, (cell, currentCol, currentRow) => {
-                    cell.addEventListener('click', clickHandler);
-                    cell.style.backgroundColor = getCellColor(colIndex + 1, row);
+                callAtSquare(col, row, (cell, currentCol, currentRow) => {
+                    cell.addEventListener('click', squareClickHandler);
+                    cell.style.backgroundColor = squareColorAt(colIndex + 1, row);
                     cell.classList.add('square');
                 });
             });
         });
     }
 
-    function generateBoard() {
+    function initializeBoard() {
         board = document.createElement('div');
         table = document.createElement('table');
         board.id = 'board';
