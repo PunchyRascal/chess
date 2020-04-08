@@ -2,6 +2,10 @@ Number.prototype.isOdd = function () {
     return this % 2 !== 0;
 };
 
+function range(length, start=1) {
+    return [...Array(length).keys()].map(i => i + start);
+}
+
 function Chess() {
     let board,
         table,
@@ -31,7 +35,6 @@ function Chess() {
         this.row = row;
         this.hasMoved = false
         this.movedTo = (col, row) => {
-            console.log('hasMoved to:', col, row);
             this.hasMoved = true;
             this.col = col;
             this.row = row;
@@ -40,7 +43,6 @@ function Chess() {
 
     function indicatePossibleTargetSquares() {
         let possibleSquares;
-        console.log(movingPiece);
 
         if (movingPiece.name === 'pawn') {
             if (!movingPiece.hasMoved) {
@@ -66,7 +68,7 @@ function Chess() {
         }
 
         possibleSquares.forEach(coord => {
-            callAtSquare2(coord.col, coord.row, cell => cell.classList.add('highlight'));
+            callAtSquare(coord.col, coord.row, cell => cell.classList.add('highlight'));
         });
     }
 
@@ -92,37 +94,29 @@ function Chess() {
             );
             movingPiece = null;
             unIndicatePossibleSquares()
-        } else {
-            let candidatePiece = pieces[e.currentTarget.querySelector('.piece').dataset.id];
-            if (!lastColor && !candidatePiece.isWhite || candidatePiece.color === lastColor) {
-                return;
-            }
-            movingPiece = candidatePiece;
-            indicatePossibleTargetSquares();
-            e.currentTarget.innerHTML = "";
+            return;
         }
+
+        let candidatePiece = pieces[e.currentTarget.querySelector('.piece').dataset.id];
+        if (!lastColor && !candidatePiece.isWhite || candidatePiece.color === lastColor) {
+            return;
+        }
+        movingPiece = candidatePiece;
+        indicatePossibleTargetSquares();
+        e.currentTarget.innerHTML = "";
     }
 
-    // TODO: merge with callAtSquare
-    function callAtSquare2(col, row, callback) {
-        console.log('callAtSquare2', col, row);
+    function callAtSquare(col, row, callback) {
         callback(table.getElementsByTagName('tr')[8 - row + 1].getElementsByTagName('td')[col]);
     }
 
-    function callAtSquare(col, number, callback) {
-        // console.log('get cell at: ', letter, ',', number);
-        let row = table.getElementsByTagName('tr')[8 - number + 1];
-        let cell = row.getElementsByTagName('td')[letterMap[col] + 1];
-        callback(cell);
-    }
-
     function initializePieces(color) {
-        let start = color === 'black' ? ['a', 8] : ['a', 2];
+        let start = color === 'black' ? [1, 8] : [1, 2];
 
         [start[1], start[1] - 1].forEach(function(row, rowIndex) {
-            [0, 1, 2, 3, 4, 5, 6, 7].forEach(function(colIndex) {
+            range(8).forEach(function(col, colIndex) {
                 piece = pieceMap[color][rowIndex][colIndex];
-                callAtSquare(numberMap[letterMap[start[0]] + colIndex], row, cell => {
+                callAtSquare(col, row, cell => {
                     let id = color + piece + Math.random();
                     pieceElement = document.createElement('div');
                     pieceElement.classList.add('piece');
@@ -140,32 +134,22 @@ function Chess() {
         let lightColor = "#998888";
         let darkColor = "#665555";
 
-        // console.log("color at: ", colIndex, rowIndex);
-
         if (rowIndex.isOdd()) {
-            if (colIndex.isOdd()) {
-                return darkColor;
-            } else {
-                return lightColor;
-            }
-        } else {
-            if (colIndex.isOdd()) {
-                return lightColor;
-            } else {
-                return darkColor;
-            }
+            return colIndex.isOdd() ? darkColor : lightColor;
         }
+
+        return colIndex.isOdd() ? lightColor : darkColor;
     }
 
     function initializeSquares() {
-        ["a", "b", "c", "d", "e", "f", "g", "h"].forEach(function(col, colIndex) {
-            [1, 2, 3, 4, 5, 6, 7, 8].forEach(function(row, rowIndex) {
-                callAtSquare(col, row, (cell, currentCol, currentRow) => {
+        range(8).forEach(function(col, colIndex) {
+            range(8).forEach(function(row) {
+                callAtSquare(col, row, cell => {
                     cell.addEventListener('click', squareClickHandler);
-                    cell.style.backgroundColor = squareColorAt(colIndex + 1, row);
+                    cell.style.backgroundColor = squareColorAt(col, row);
                     cell.classList.add('square');
                     cell.dataset.row = row;
-                    cell.dataset.col = colIndex + 1;
+                    cell.dataset.col = col;
                 });
             });
         });
@@ -176,20 +160,19 @@ function Chess() {
         table = document.createElement('table');
         board.id = 'board';
 
-        for (let i = 1; i <= 10; i++) {
-            let row = document.createElement('tr');
-            for (let j = 1; j <= 10; j++) {
+        range(10).forEach(row => {
+            let tr = document.createElement('tr');
+            range(10).forEach(col => {
                 let cell = document.createElement('td');
-                if ((i === 1 || i === 10) && j > 1 && j < 10) {
-                    cell.innerText = numberMap[j - 2];
+                if ((row === 1 || row === 10) && col > 1 && col < 10) {
+                    cell.innerText = numberMap[col - 2];
+                } else if (row > 1 && row < 10 && (col === 1 || col === 10)) {
+                    cell.innerText = 10 - row;
                 }
-                if (i > 1 && i < 10 && (j === 1 || j === 10)) {
-                    cell.innerText = 10 - i;
-                }
-                row.appendChild(cell)
-            }
-            table.appendChild(row);
-        }
+                tr.appendChild(cell)
+            });
+            table.appendChild(tr);
+        });
 
         board.appendChild(table);
         document.getElementsByTagName('body')[0].appendChild(board)
