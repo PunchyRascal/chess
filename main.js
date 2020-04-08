@@ -14,37 +14,105 @@ function Chess() {
             white: {0: pawnRow, 1: queenRow}
         },
         movingPiece,
+        pieces = {},
         lastColor;
 
     initializeBoard();
     ['black', 'white'].forEach(initializePieces);
     initializeSquares();
 
+    function MovingPiece(element, id, color, piece, col, row) {
+        this.isWhite = color === "white";
+        this.color = color;
+        this.id = id;
+        this.name = piece;
+        this.element = element;
+        this.col = col;
+        this.row = row;
+        this.hasMoved = false
+        this.movedTo = (col, row) => {
+            console.log('hasMoved to:', col, row);
+            this.hasMoved = true;
+            this.col = col;
+            this.row = row;
+        };
+    }
+
+    function indicatePossibleTargetSquares() {
+        let possibleSquares;
+        console.log(movingPiece);
+
+        if (movingPiece.name === 'pawn') {
+            if (!movingPiece.hasMoved) {
+                if (movingPiece.isWhite) {
+                    possibleSquares = [
+                        {col: movingPiece.col, row: 3},
+                        {col: movingPiece.col, row: 4}
+                    ];
+                } else {
+                    possibleSquares = [
+                        {col: movingPiece.col, row: 6},
+                        {col: movingPiece.col, row: 5}
+                    ];
+                }
+            } else {
+                possibleSquares = [
+                    {
+                        col: movingPiece.col,
+                        row: movingPiece.row + (movingPiece.isWhite ? 1 : -1)
+                    }
+                ]
+            }
+        }
+
+        possibleSquares.forEach(coord => {
+            callAtSquare2(coord.col, coord.row, cell => cell.classList.add('highlight'));
+        });
+    }
+
+    function unIndicatePossibleSquares() {
+        document.querySelectorAll('.square.highlight').forEach(el => el.classList.remove('highlight'));
+    }
+
     function squareClickHandler(e) {
         if (!movingPiece && e.currentTarget.innerHTML === "") {
             return;
         }
 
-        if (movingPiece) {
-            e.currentTarget.appendChild(movingPiece);
-            lastColor = movingPiece.dataset.color;
-            movingPiece = null;
-        } else {
-            movingPiece = e.currentTarget.querySelector('.piece');
+        if (movingPiece && !e.currentTarget.classList.contains('highlight')) {
+            return;
+        }
 
-            if (!lastColor && movingPiece.dataset.color !== 'white' || movingPiece.dataset.color === lastColor) {
-                movingPiece = null;
+        if (movingPiece) {
+            e.currentTarget.appendChild(movingPiece.element);
+            lastColor = movingPiece.color;
+            movingPiece.movedTo(
+                Number(e.currentTarget.dataset.col),
+                Number(e.currentTarget.dataset.row)
+            );
+            movingPiece = null;
+            unIndicatePossibleSquares()
+        } else {
+            let candidatePiece = pieces[e.currentTarget.querySelector('.piece').dataset.id];
+            if (!lastColor && !candidatePiece.isWhite || candidatePiece.color === lastColor) {
                 return;
             }
-
+            movingPiece = candidatePiece;
+            indicatePossibleTargetSquares();
             e.currentTarget.innerHTML = "";
         }
     }
 
-    function callAtSquare(letter, number, callback) {
+    // TODO: merge with callAtSquare
+    function callAtSquare2(col, row, callback) {
+        console.log('callAtSquare2', col, row);
+        callback(table.getElementsByTagName('tr')[8 - row + 1].getElementsByTagName('td')[col]);
+    }
+
+    function callAtSquare(col, number, callback) {
         // console.log('get cell at: ', letter, ',', number);
         let row = table.getElementsByTagName('tr')[8 - number + 1];
-        let cell = row.getElementsByTagName('td')[letterMap[letter] + 1];
+        let cell = row.getElementsByTagName('td')[letterMap[col] + 1];
         callback(cell);
     }
 
@@ -55,7 +123,14 @@ function Chess() {
             [0, 1, 2, 3, 4, 5, 6, 7].forEach(function(colIndex) {
                 piece = pieceMap[color][rowIndex][colIndex];
                 callAtSquare(numberMap[letterMap[start[0]] + colIndex], row, cell => {
-                    cell.innerHTML = "<span class='piece' data-color='"+ color +"' style='color: "+ color +"'>" + piece + "</span>";
+                    let id = color + piece + Math.random();
+                    pieceElement = document.createElement('div');
+                    pieceElement.classList.add('piece');
+                    pieceElement.style.color = color;
+                    pieceElement.innerText = piece;
+                    pieceElement.dataset.id = id;
+                    pieces[id] = new MovingPiece(pieceElement, id, color, piece, colIndex + 1, rowIndex + 1);
+                    cell.appendChild(pieceElement);
                 });
             });
         });
@@ -89,6 +164,8 @@ function Chess() {
                     cell.addEventListener('click', squareClickHandler);
                     cell.style.backgroundColor = squareColorAt(colIndex + 1, row);
                     cell.classList.add('square');
+                    cell.dataset.row = row;
+                    cell.dataset.col = colIndex + 1;
                 });
             });
         });
