@@ -9,7 +9,6 @@ function range(length, start=1) {
 function Chess() {
     let board,
         table,
-        letterMap = {a: 0, b: 1, c: 2, d: 3, e: 4, f: 5, g: 6, h: 7},
         numberMap = {0: 'a', 1: 'b', 2: 'c', 3: 'd', 4: 'e', 5: 'f', 6: 'g', 7: 'h'},
         queenRow = {0: "rook", 1: "knight", 2: "bishop", 3: "queen", 4: "king", 5: "bishop", 6: "knight", 7: "rook"},
         pawnRow = {0: "pawn", 1: "pawn", 2: "pawn", 3: "pawn", 4: "pawn", 5: "pawn", 6: "pawn", 7: "pawn"},
@@ -35,9 +34,14 @@ function Chess() {
         this.row = row;
         this.hasMoved = false
         this.movedTo = (col, row) => {
+            if (col === this.col && row === this.row) {
+                return;
+            }
+
             this.hasMoved = true;
             this.col = col;
             this.row = row;
+            lastColor = movingPiece.color;
         };
     }
 
@@ -87,7 +91,6 @@ function Chess() {
 
         if (movingPiece) {
             e.currentTarget.appendChild(movingPiece.element);
-            lastColor = movingPiece.color;
             movingPiece.movedTo(
                 Number(e.currentTarget.dataset.col),
                 Number(e.currentTarget.dataset.row)
@@ -103,7 +106,7 @@ function Chess() {
         }
         movingPiece = candidatePiece;
         indicatePossibleTargetSquares();
-        e.currentTarget.innerHTML = "";
+        e.currentTarget.classList.add('highlight');
     }
 
     function callAtSquare(col, row, callback) {
@@ -123,7 +126,7 @@ function Chess() {
                     pieceElement.style.color = color;
                     pieceElement.innerText = piece;
                     pieceElement.dataset.id = id;
-                    pieces[id] = new MovingPiece(pieceElement, id, color, piece, colIndex + 1, rowIndex + 1);
+                    pieces[id] = new MovingPiece(pieceElement, id, color, piece, col, row);
                     cell.appendChild(pieceElement);
                 });
             });
