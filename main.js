@@ -2,6 +2,10 @@ Number.prototype.isOdd = function () {
     return this % 2 !== 0;
 };
 
+String.prototype.capitalize = function() {
+    return this[0].toUpperCase() + this.slice(1);
+}
+
 function range(length, start=1) {
     return [...Array(length).keys()].map(i => i + start);
 }
@@ -18,11 +22,13 @@ function Chess() {
         },
         movingPiece,
         pieces = {},
-        lastColor;
+        lastColor,
+        historyLog;
 
     initializeBoard();
     ['black', 'white'].forEach(initializePieces);
     initializeSquares();
+    initializeHistory();
 
     function MovingPiece(element, id, color, piece, col, row) {
         this.isWhite = color === "white";
@@ -38,11 +44,30 @@ function Chess() {
                 return;
             }
 
+            addHistoryItem(col, row, this.col, this.row);
             this.hasMoved = true;
             this.col = col;
             this.row = row;
             lastColor = movingPiece.color;
         };
+    }
+
+    function addHistoryItem(newCol, newRow, oldCol, oldRow) {
+        item = document.createElement('div');
+        text = movingPiece.color[0].toUpperCase() + ": " + movingPiece.name.capitalize()
+            + " " + numberMap[oldCol - 1].toUpperCase() + oldRow
+            + " -> " + numberMap[newCol - 1].toUpperCase() + newRow;
+        d = new Date();
+        date = '<span>' + d.getDate() +'/' + d.getMonth() +'/'+ d.getFullYear() + ' '
+            + d.getHours() + ':' + d.getMinutes() + ':' + d.getSeconds() + '</span>'
+        item.innerHTML = text + date;
+        historyLog.appendChild(item);
+    }
+
+    function initializeHistory() {
+        historyLog = document.createElement('div');
+        historyLog.id = 'historyLog';
+        document.getElementsByTagName('body')[0].appendChild(historyLog);
     }
 
     function indicatePossibleTargetSquares() {

@@ -2,6 +2,7 @@ body {
     background: #333;
     padding: 10vh 0;
     margin: 0;
+    font-family: "Fira Code Retina", sans-serif;
 }
 #board {
     width: 80vh;
@@ -12,7 +13,6 @@ body {
 table {
     width: 100%;
     height: 100%;
-    font-family: "Fira Code Retina", sans-serif;
     border-collapse: collapse;
     border: 1px solid #999;
 }
@@ -45,4 +45,31 @@ td:not(:empty) {
     line-height: 60px;
     text-align: center;
     margin: auto;
+}
+
+#historyLog {
+    position: absolute;
+    left: 40px;
+    top: 40px;
+    width: 260px;
+    height: 400px;
+    overflow: auto;
+    border: #666;
+    background: #ccc;
+    font-size: 11px;
+}
+
+#historyLog div {
+    padding: 4px 10px;
+}
+
+#historyLog div:nth-child(odd) {
+    background-color: aliceblue;
+}
+
+#historyLog span {
+    font-size: smaller;
+    display: block;
+    text-align: right;
+    color: #777;
 }
