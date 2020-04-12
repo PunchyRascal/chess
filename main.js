@@ -16,6 +16,7 @@ function Chess() {
         numberMap = {0: 'a', 1: 'b', 2: 'c', 3: 'd', 4: 'e', 5: 'f', 6: 'g', 7: 'h'},
         queenRow = {0: "rook", 1: "knight", 2: "bishop", 3: "queen", 4: "king", 5: "bishop", 6: "knight", 7: "rook"},
         pawnRow = {0: "pawn", 1: "pawn", 2: "pawn", 3: "pawn", 4: "pawn", 5: "pawn", 6: "pawn", 7: "pawn"},
+        colorReverseMap = {'black': "white", 'white': "black"},
         pieceMap = {
             black: {0: queenRow, 1: pawnRow},
             white: {0: pawnRow, 1: queenRow}
@@ -23,12 +24,16 @@ function Chess() {
         movingPiece,
         pieces = {},
         lastColor,
-        historyLog;
+        historyLog,
+        moveCounter = 0,
+        body = document.getElementsByTagName('body')[0],
+        capturedPieceLogs = {};
 
     initializeBoard();
     ['black', 'white'].forEach(initializePieces);
     initializeSquares();
     initializeHistory();
+    initializeCapturedPieceLog();
 
     function MovingPiece(element, id, color, piece, col, row) {
         this.isWhite = color === "white";
@@ -39,22 +44,47 @@ function Chess() {
         this.col = col;
         this.row = row;
         this.hasMoved = false
-        this.movedTo = (col, row) => {
+        this.moveTo = (newSquare, col, row) => {
             if (col === this.col && row === this.row) {
                 return;
             }
 
+            if (newSquare.dataset.occuppied) {
+                capturePiece(pieces[newSquare.querySelector('.piece').dataset.id]);
+            }
+
+            newSquare.dataset.occuppied = true;
+            newSquare.appendChild(movingPiece.element);
             addHistoryItem(col, row, this.col, this.row);
             this.hasMoved = true;
             this.col = col;
             this.row = row;
             lastColor = movingPiece.color;
+            movingPiece = null;
         };
     }
 
-    function addHistoryItem(newCol, newRow, oldCol, oldRow) {
+    function initializeCapturedPieceLog() {
+        ['black', 'white'].forEach(color => {
+            el = document.createElement('div');
+            el.classList.add('capturedPieceLog');
+            el.classList.add('logColor' + color.capitalize());
+            body.appendChild(el);
+            capturedPieceLogs[color] = el
+        });
+    }
+
+    function capturePiece(piece) {
         item = document.createElement('div');
-        text = movingPiece.color[0].toUpperCase() + ": " + movingPiece.name.capitalize()
+        item.innerHTML = piece.name;
+        capturedPieceLogs[colorReverseMap[piece.color]].appendChild(item);
+        piece.element.remove();
+    }
+
+    function addHistoryItem(newCol, newRow, oldCol, oldRow) {
+        moveCounter++;
+        item = document.createElement('div');
+        text = moveCounter + ') ' + movingPiece.color[0].toUpperCase() + ": " + movingPiece.name.capitalize()
             + " " + numberMap[oldCol - 1].toUpperCase() + oldRow
             + " -> " + numberMap[newCol - 1].toUpperCase() + newRow;
         d = new Date();
@@ -67,7 +97,7 @@ function Chess() {
     function initializeHistory() {
         historyLog = document.createElement('div');
         historyLog.id = 'historyLog';
-        document.getElementsByTagName('body')[0].appendChild(historyLog);
+        body.appendChild(historyLog);
     }
 
     function indicatePossibleTargetSquares() {
@@ -115,12 +145,11 @@ function Chess() {
         }
 
         if (movingPiece) {
-            e.currentTarget.appendChild(movingPiece.element);
-            movingPiece.movedTo(
+            movingPiece.moveTo(
+                e.currentTarget,
                 Number(e.currentTarget.dataset.col),
                 Number(e.currentTarget.dataset.row)
             );
-            movingPiece = null;
             unIndicatePossibleSquares()
             return;
         }
@@ -203,7 +232,7 @@ function Chess() {
         });
 
         board.appendChild(table);
-        document.getElementsByTagName('body')[0].appendChild(board)
+        body.appendChild(board)
     }
 
 }
