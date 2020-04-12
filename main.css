@@ -62,7 +62,7 @@ td:not(:empty) {
     height: 400px;
     overflow: auto;
     border: #666;
-    background: #666;
+    background: #bbb;
     font-size: 11px;
 }
 
@@ -77,7 +77,7 @@ td:not(:empty) {
 }
 
 #historyLog div:nth-child(odd) {
-    background-color: aliceblue;
+    background-color: #ddd;
 }
 
 #historyLog span {

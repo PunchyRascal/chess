@@ -23,11 +23,13 @@ function Chess() {
         },
         movingPiece,
         pieces = {},
+        squares = {},
         lastColor,
         historyLog,
         moveCounter = 0,
         body = document.getElementsByTagName('body')[0],
-        capturedPieceLogs = {};
+        capturedPieceLogs = {},
+        highlightedSquares = [];
 
     initializeBoard();
     ['black', 'white'].forEach(initializePieces);
@@ -35,7 +37,38 @@ function Chess() {
     initializeHistory();
     initializeCapturedPieceLog();
 
-    function MovingPiece(element, id, color, piece, col, row) {
+    function Square(element, col, row) {
+        this.element = element;
+        this.piece = null;
+        this.col = col;
+        this.row = row;
+        this.isHighlighted = false;
+
+        this.initialize = function() {
+            this.element.addEventListener('click', squareClickHandler);
+            this.element.style.backgroundColor = squareColorAt(col, row);
+            this.element.classList.add('square');
+        };
+
+        this.highlight = function() {
+            this.isHighlighted = true;
+            this.element.classList.add('highlight');
+            highlightedSquares.push(this);
+        };
+
+        this.unHighlight = function() {
+            this.isHighlighted = false;
+            this.element.classList.remove('highlight');
+        };
+
+        this.accommodatePiece = function (piece) {
+            this.piece = piece;
+            this.element.appendChild(piece.element);
+        };
+    }
+
+    function Piece(element, id, color, piece, col, row) {
+        this.isBlack = color === "black";
         this.isWhite = color === "white";
         this.color = color;
         this.id = id;
@@ -43,24 +76,37 @@ function Chess() {
         this.element = element;
         this.col = col;
         this.row = row;
-        this.hasMoved = false
-        this.moveTo = (newSquare, col, row) => {
-            if (col === this.col && row === this.row) {
+        this.hasMoved = false;
+
+        this.isSameColorAs = function(otherPiece) {
+            return otherPiece.isWhite && this.isWhite || otherPiece.isBlack && this.isBlack;
+        };
+
+        this.moveTo = (square) => {
+            if (square.col === this.col && square.row === this.row) {
                 return;
             }
 
-            if (newSquare.dataset.occuppied) {
-                capturePiece(pieces[newSquare.querySelector('.piece').dataset.id]);
+            let incumbentPiece = square.piece;
+
+            if (incumbentPiece) {
+                if (!incumbentPiece.isSameColorAs(movingPiece)) {
+                    capturePiece(incumbentPiece);
+                } else {
+                    return;
+                }
             }
 
-            newSquare.dataset.occuppied = true;
-            newSquare.appendChild(movingPiece.element);
-            addHistoryItem(col, row, this.col, this.row);
+            console.log(square);
+
+            square.accommodatePiece(this)
+            addHistoryItem(square.col, square.row, this.col, this.row, incumbentPiece);
             this.hasMoved = true;
-            this.col = col;
-            this.row = row;
+            this.col = square.col;
+            this.row = square.row;
             lastColor = movingPiece.color;
             movingPiece = null;
+            square.piece = this;
         };
     }
 
@@ -81,12 +127,17 @@ function Chess() {
         piece.element.remove();
     }
 
-    function addHistoryItem(newCol, newRow, oldCol, oldRow) {
+    function addHistoryItem(newCol, newRow, oldCol, oldRow, capturedPiece) {
         moveCounter++;
         item = document.createElement('div');
         text = moveCounter + ') ' + movingPiece.color[0].toUpperCase() + ": " + movingPiece.name.capitalize()
             + " " + numberMap[oldCol - 1].toUpperCase() + oldRow
             + " -> " + numberMap[newCol - 1].toUpperCase() + newRow;
+
+        if (capturedPiece) {
+            text += " ⏺ " + capturePiece.name
+        }
+
         d = new Date();
         date = '<span>' + d.getDate() +'/' + d.getMonth() +'/'+ d.getFullYear() + ' '
             + d.getHours() + ':' + d.getMinutes() + ':' + d.getSeconds() + '</span>'
@@ -100,8 +151,10 @@ function Chess() {
         body.appendChild(historyLog);
     }
 
-    function indicatePossibleTargetSquares() {
+    function indicatePossibleTargetSquares(startSquare) {
         let possibleSquares;
+
+        startSquare.highlight();
 
         if (movingPiece.name === 'pawn') {
             if (!movingPiece.hasMoved) {
@@ -127,44 +180,47 @@ function Chess() {
         }
 
         possibleSquares.forEach(coord => {
-            callAtSquare(coord.col, coord.row, cell => cell.classList.add('highlight'));
+            callAtSquare(coord.col, coord.row, square => square.highlight());
         });
     }
 
-    function unIndicatePossibleSquares() {
-        document.querySelectorAll('.square.highlight').forEach(el => el.classList.remove('highlight'));
-    }
-
     function squareClickHandler(e) {
-        if (!movingPiece && e.currentTarget.innerHTML === "") {
+        let square = squares[e.currentTarget.dataset.id];
+
+        if (!movingPiece && !square.piece) {
             return;
         }
 
-        if (movingPiece && !e.currentTarget.classList.contains('highlight')) {
+        if (movingPiece && !square.isHighlighted) {
             return;
         }
 
         if (movingPiece) {
-            movingPiece.moveTo(
-                e.currentTarget,
-                Number(e.currentTarget.dataset.col),
-                Number(e.currentTarget.dataset.row)
-            );
-            unIndicatePossibleSquares()
+            movingPiece.moveTo(square);
+            highlightedSquares.forEach(square => square.unHighlight());
+            highlightedSquares = [];
             return;
         }
 
         let candidatePiece = pieces[e.currentTarget.querySelector('.piece').dataset.id];
+
         if (!lastColor && !candidatePiece.isWhite || candidatePiece.color === lastColor) {
             return;
         }
+
         movingPiece = candidatePiece;
-        indicatePossibleTargetSquares();
-        e.currentTarget.classList.add('highlight');
+        indicatePossibleTargetSquares(square);
     }
 
     function callAtSquare(col, row, callback) {
-        callback(table.getElementsByTagName('tr')[8 - row + 1].getElementsByTagName('td')[col]);
+        callback(
+            squares[
+                table
+                    .getElementsByTagName('tr')[8 - row + 1]
+                    .getElementsByTagName('td')[col]
+                    .dataset.id
+            ]
+        );
     }
 
     function initializePieces(color) {
@@ -173,15 +229,15 @@ function Chess() {
         [start[1], start[1] - 1].forEach(function(row, rowIndex) {
             range(8).forEach(function(col, colIndex) {
                 piece = pieceMap[color][rowIndex][colIndex];
-                callAtSquare(col, row, cell => {
+                callAtSquare(col, row, square => {
                     let id = color + piece + Math.random();
                     pieceElement = document.createElement('div');
                     pieceElement.classList.add('piece');
                     pieceElement.style.color = color;
                     pieceElement.innerText = piece;
                     pieceElement.dataset.id = id;
-                    pieces[id] = new MovingPiece(pieceElement, id, color, piece, col, row);
-                    cell.appendChild(pieceElement);
+                    pieces[id] = new Piece(pieceElement, id, color, piece, col, row);
+                    square.accommodatePiece(pieces[id]);
                 });
             });
         });
@@ -201,13 +257,7 @@ function Chess() {
     function initializeSquares() {
         range(8).forEach(function(col, colIndex) {
             range(8).forEach(function(row) {
-                callAtSquare(col, row, cell => {
-                    cell.addEventListener('click', squareClickHandler);
-                    cell.style.backgroundColor = squareColorAt(col, row);
-                    cell.classList.add('square');
-                    cell.dataset.row = row;
-                    cell.dataset.col = col;
-                });
+                callAtSquare(col, row, square => square.initialize());
             });
         });
     }
@@ -221,11 +271,16 @@ function Chess() {
             let tr = document.createElement('tr');
             range(10).forEach(col => {
                 let cell = document.createElement('td');
+
                 if ((row === 1 || row === 10) && col > 1 && col < 10) {
                     cell.innerText = numberMap[col - 2];
                 } else if (row > 1 && row < 10 && (col === 1 || col === 10)) {
                     cell.innerText = 10 - row;
+                } else if (col > 1 && col < 10 && row > 1 && row < 10) {
+                    cell.dataset.id = `${col - 1}:${row - 1}`;
+                    squares[cell.dataset.id] = new Square(cell, col - 1, 10 - row);
                 }
+
                 tr.appendChild(cell)
             });
             table.appendChild(tr);
