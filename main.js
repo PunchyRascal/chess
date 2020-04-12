@@ -33,7 +33,6 @@ function Chess() {
 
     initializeBoard();
     ['black', 'white'].forEach(initializePieces);
-    initializeSquares();
     initializeHistory();
     initializeCapturedPieceLog();
 
@@ -67,16 +66,22 @@ function Chess() {
         };
     }
 
-    function Piece(element, id, color, piece, col, row) {
+    function Piece(id, color, pieceName, col, row) {
         this.isBlack = color === "black";
         this.isWhite = color === "white";
         this.color = color;
         this.id = id;
-        this.name = piece;
-        this.element = element;
+        this.name = pieceName;
         this.col = col;
         this.row = row;
         this.hasMoved = false;
+
+        this.element = document.createElement('div');
+        this.element.classList.add('piece');
+        this.element.style.color = color;
+        this.element.innerText = this.name;
+        this.element.dataset.id = id;
+
 
         this.isSameColorAs = function(otherPiece) {
             return otherPiece.isWhite && this.isWhite || otherPiece.isBlack && this.isBlack;
@@ -93,11 +98,10 @@ function Chess() {
                 if (!incumbentPiece.isSameColorAs(movingPiece)) {
                     capturePiece(incumbentPiece);
                 } else {
+                    // TODO: handle by not highlighting occupied squares
                     return;
                 }
             }
-
-            console.log(square);
 
             square.accommodatePiece(this)
             addHistoryItem(square.col, square.row, this.col, this.row, incumbentPiece);
@@ -122,7 +126,7 @@ function Chess() {
 
     function capturePiece(piece) {
         item = document.createElement('div');
-        item.innerHTML = piece.name;
+        item.innerText = piece.name;
         capturedPieceLogs[colorReverseMap[piece.color]].appendChild(item);
         piece.element.remove();
     }
@@ -228,15 +232,10 @@ function Chess() {
 
         [start[1], start[1] - 1].forEach(function(row, rowIndex) {
             range(8).forEach(function(col, colIndex) {
-                piece = pieceMap[color][rowIndex][colIndex];
+                pieceName = pieceMap[color][rowIndex][colIndex];
                 callAtSquare(col, row, square => {
-                    let id = color + piece + Math.random();
-                    pieceElement = document.createElement('div');
-                    pieceElement.classList.add('piece');
-                    pieceElement.style.color = color;
-                    pieceElement.innerText = piece;
-                    pieceElement.dataset.id = id;
-                    pieces[id] = new Piece(pieceElement, id, color, piece, col, row);
+                    let id = color + pieceName + Math.random();
+                    pieces[id] = new Piece(id, color, pieceName, col, row);
                     square.accommodatePiece(pieces[id]);
                 });
             });
@@ -252,14 +251,6 @@ function Chess() {
         }
 
         return colIndex.isOdd() ? lightColor : darkColor;
-    }
-
-    function initializeSquares() {
-        range(8).forEach(function(col, colIndex) {
-            range(8).forEach(function(row) {
-                callAtSquare(col, row, square => square.initialize());
-            });
-        });
     }
 
     function initializeBoard() {
@@ -278,7 +269,9 @@ function Chess() {
                     cell.innerText = 10 - row;
                 } else if (col > 1 && col < 10 && row > 1 && row < 10) {
                     cell.dataset.id = `${col - 1}:${row - 1}`;
-                    squares[cell.dataset.id] = new Square(cell, col - 1, 10 - row);
+                    let square = new Square(cell, col - 1, 10 - row);
+                    squares[cell.dataset.id] = square;
+                    square.initialize();
                 }
 
                 tr.appendChild(cell)
